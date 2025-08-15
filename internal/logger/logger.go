@@ -4,51 +4,101 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"sync"
 )
 
-const logChBuf = 100
+const wgDefaultDelta = 1
 
-func NewLogger() *slog.Logger {
-	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true})
-	logger := slog.New(handler)
-
-	return logger
-}
-
-type Log struct {
-	Level   slog.Level
-	Message string
-	Attrs   []slog.Attr
+type logEntry struct {
+	level   slog.Level
+	message string
+	attrs   []slog.Attr
 }
 
 type AsyncLogger struct {
-	Logger *slog.Logger
-	LogCh  chan Log
+	logger *slog.Logger
+	logCh  chan logEntry
+	wg     *sync.WaitGroup
 }
 
-func NewLoggingWorker(logger *slog.Logger) *AsyncLogger {
+func NewAsyncLogger(logChBuf int) *AsyncLogger {
+	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true})
+	logger := slog.New(handler)
+
 	return &AsyncLogger{
-		Logger: logger,
-		LogCh:  make(chan Log, logChBuf),
+		logger: logger,
+		logCh:  make(chan logEntry, logChBuf),
+		wg:     &sync.WaitGroup{},
 	}
 }
 
-func (lw *AsyncLogger) Run(ctx context.Context) {
+func (al *AsyncLogger) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			for log := range al.logCh {
+				al.logger.LogAttrs(context.Background(), log.level, log.message, log.attrs...)
+				al.wg.Done()
+			}
+
 			return
 
-		case log, ok := <-lw.LogCh:
+		case log, ok := <-al.logCh:
 			if !ok {
 				return
 			}
 
-			lw.Logger.LogAttrs(ctx, log.Level, log.Message, log.Attrs...)
+			al.logger.LogAttrs(ctx, log.level, log.message, log.attrs...)
+			al.wg.Done()
 		}
 	}
 }
 
-func (lw *AsyncLogger) Close() {
-	close(lw.LogCh)
+func (al *AsyncLogger) Info(ctx context.Context, message string, attrs ...slog.Attr) {
+	select {
+	case <-ctx.Done():
+		return
+
+	case al.logCh <- logEntry{
+		level:   slog.LevelInfo,
+		message: message,
+		attrs:   attrs,
+	}:
+		al.wg.Add(wgDefaultDelta)
+	}
+}
+
+func (al *AsyncLogger) Error(ctx context.Context, message string, attrs ...slog.Attr) {
+	select {
+	case <-ctx.Done():
+		return
+
+	case al.logCh <- logEntry{
+		level:   slog.LevelError,
+		message: message,
+		attrs:   attrs,
+	}:
+		al.wg.Add(wgDefaultDelta)
+
+	}
+}
+
+func (al *AsyncLogger) Close(ctx context.Context) {
+	done := make(chan struct{})
+
+	go func() {
+		close(al.logCh)
+		al.wg.Wait()
+
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-ctx.Done():
+		al.logger.LogAttrs(context.Background(), slog.LevelWarn,
+			"AsyncLogger: close timeout reached, some logs may be lost",
+			slog.String("reason", ctx.Err().Error()),
+		)
+	}
 }

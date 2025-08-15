@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"lo/domain/task"
 	"lo/internal/api/handler"
 	llogger "lo/internal/logger"
 )
@@ -18,6 +19,8 @@ import (
 const (
 	httpHost = "localhost"
 	httpPort = 8080
+
+	logChBuf = 100
 
 	shutdownTime = 15 * time.Second
 )
@@ -30,13 +33,13 @@ func main() {
 	)
 	defer cancel()
 
-	logger := llogger.NewLogger()
+	asyncLogger := llogger.NewAsyncLogger(logChBuf)
 
-	loggingWorker := llogger.NewLoggingWorker(logger)
+	go asyncLogger.Run(ctx)
 
-	go loggingWorker.Run(ctx)
+	storageTask := task.New()
 
-	router := initRouter(loggingWorker)
+	router := initRouter(storageTask, asyncLogger)
 
 	server := http.Server{
 		Addr:    fmt.Sprintf("%s:%d", httpHost, httpPort),
@@ -44,38 +47,38 @@ func main() {
 	}
 
 	go func() {
-		logger.Info("starting http server", slog.String("addr", server.Addr))
+		asyncLogger.Info(ctx, "starting http server", slog.String("addr", server.Addr))
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("failed to start server", slog.String("err", err.Error()))
+			asyncLogger.Error(ctx, "failed to start server", slog.String("err", err.Error()))
 		}
 	}()
 
 	<-ctx.Done()
 
-	logger.Info("received shutdown signal")
-
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), shutdownTime)
 	defer shutdownCancel()
 
+	asyncLogger.Info(shutdownCtx, "received shutdown signal")
+
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		logger.Error("cannot shutdown http server", slog.String("err", err.Error()))
+		asyncLogger.Error(shutdownCtx, "cannot shutdown http server", slog.String("err", err.Error()))
 		return
 	}
 
-	loggingWorker.Close()
+	asyncLogger.Info(shutdownCtx, "stopping http server", slog.String("addr", server.Addr))
 
-	logger.Info("stopping http server", slog.String("addr", server.Addr))
+	asyncLogger.Info(shutdownCtx, "application shutdown completed successfully")
 
-	logger.Info("application shutdown completed successfully")
+	asyncLogger.Close(shutdownCtx)
 }
 
-func initRouter(loggingWorker *llogger.AsyncLogger) *http.ServeMux {
+func initRouter(storageTask *task.StorageTask, loggingWorker *llogger.AsyncLogger) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/tasks", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
-			handler.CreateTask(loggingWorker.LogCh)(w, r)
+			handler.CreateTask(storageTask, loggingWorker)(w, r)
 
 		case http.MethodGet:
 			handler.GetTask()(w, r)
