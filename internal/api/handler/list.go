@@ -1,12 +1,42 @@
 package handler
 
 import (
-	"fmt"
+	"encoding/json"
+	"log/slog"
 	"net/http"
+
+	"lo/domain/task"
+	"lo/internal/api"
+	"lo/internal/logger"
 )
 
-func ListTasks() func(w http.ResponseWriter, r *http.Request) {
+func ListTasks(st *task.StorageTask, as *logger.AsyncLogger) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("ListTasks")
+		var tasks []*task.Task
+
+		status := r.URL.Query().Get("status")
+		if status == "" {
+			tasks = st.GetAll()
+		} else {
+			tasks = st.GetByStatus(status)
+		}
+
+		if tasks == nil {
+			api.WriteError(w, as, http.StatusNotFound, "tasks not found")
+			as.Warn("ListTasks: tasks not found")
+			return
+		}
+
+		writeResponseWithTasks(w, tasks, as)
+		as.Info("ListTasks: successfully list tasks", slog.Int("count", len(tasks)))
+	}
+}
+
+func writeResponseWithTasks(w http.ResponseWriter, t []*task.Task, as *logger.AsyncLogger) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(t); err != nil {
+		as.Error("writeResponseWithTask: cannot encode request body", slog.String("error", err.Error()))
 	}
 }

@@ -83,6 +83,20 @@ func (al *AsyncLogger) Error(message string, attrs ...slog.Attr) {
 	}
 }
 
+func (al *AsyncLogger) Warn(message string, attrs ...slog.Attr) {
+	select {
+	case al.logCh <- logEntry{
+		level:   slog.LevelWarn,
+		message: message,
+		attrs:   attrs,
+	}:
+		al.wg.Add(wgDefaultDelta)
+
+	default:
+
+	}
+}
+
 func (al *AsyncLogger) Close(ctx context.Context) {
 	done := make(chan struct{})
 

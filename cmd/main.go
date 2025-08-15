@@ -81,7 +81,7 @@ func initRouter(storageTask *task.StorageTask, loggingWorker *llogger.AsyncLogge
 			handler.CreateTask(storageTask, loggingWorker)(w, r)
 
 		case http.MethodGet:
-			handler.ListTasks()(w, r)
+			handler.ListTasks(storageTask, loggingWorker)(w, r)
 
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)

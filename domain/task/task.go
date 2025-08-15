@@ -1,7 +1,6 @@
 package task
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -36,14 +35,46 @@ func (st *StorageTask) Save(task *Task) {
 	st.storage[st.countId] = task
 }
 
-func (st *StorageTask) Get(id int) (*Task, error) {
+func (st *StorageTask) Get(id int) *Task {
 	st.mu.Lock()
 	defer st.mu.Unlock()
 
 	task, ok := st.storage[id]
 	if !ok {
-		return nil, fmt.Errorf("Get: task %d not found", id)
+		return nil
 	}
 
-	return task, nil
+	return task
+}
+
+func (st *StorageTask) GetAll() []*Task {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+
+	var tasks []*Task
+
+	for _, task := range st.storage {
+		tasks = append(tasks, task)
+	}
+
+	if len(tasks) == 0 {
+		return nil
+	}
+
+	return tasks
+}
+
+func (st *StorageTask) GetByStatus(status string) []*Task {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+
+	var tasks []*Task
+
+	for _, task := range st.storage {
+		if task.Status == status {
+			tasks = append(tasks, task)
+		}
+	}
+
+	return tasks
 }

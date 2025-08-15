@@ -40,6 +40,6 @@ func writeResponseWithTask(w http.ResponseWriter, t *task.Task, as *logger.Async
 	w.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(t); err != nil {
-		as.Error("writeResponseWIthTask: cannot decode request body", slog.String("error", err.Error()))
+		as.Error("writeResponseWIthTask: cannot encode request body", slog.String("error", err.Error()))
 	}
 }
