@@ -69,17 +69,16 @@ func (al *AsyncLogger) Info(message string, attrs ...slog.Attr) {
 }
 
 func (al *AsyncLogger) Error(message string, attrs ...slog.Attr) {
-	select {
+	al.wg.Add(wgDefaultDelta)
 
+	select {
 	case al.logCh <- logEntry{
 		level:   slog.LevelError,
 		message: message,
 		attrs:   attrs,
 	}:
-		al.wg.Add(wgDefaultDelta)
-
 	default:
-
+		al.wg.Done()
 	}
 }
 

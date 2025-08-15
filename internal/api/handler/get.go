@@ -12,6 +12,16 @@ import (
 	"lo/internal/logger"
 )
 
+// GetTask godoc
+// @Summary Get a task by ID
+// @Description Получить задачу по ID.
+// @Tags tasks
+// @Produce application/json
+// @Param id path int true "Task ID"
+// @Success 200 {object} task.Task
+// @Failure 400 {object} api.ErrorResponse
+// @Failure 404 {object} api.ErrorResponse
+// @Router /tasks/{id} [get]
 func GetTask(st *task.StorageTask, as *logger.AsyncLogger) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, idStr := path.Split(r.URL.Path)
@@ -23,10 +33,10 @@ func GetTask(st *task.StorageTask, as *logger.AsyncLogger) func(w http.ResponseW
 			return
 		}
 
-		t, err := st.Get(id)
-		if err != nil {
+		t := st.Get(id)
+		if t == nil {
 			api.WriteError(w, as, http.StatusNotFound, "task not found")
-			as.Error("GetTask: task not found", slog.Int("id", id), slog.String("error", err.Error()))
+			as.Error("GetTask: task not found", slog.Int("id", id))
 			return
 		}
 

@@ -1,3 +1,10 @@
+// @title Tasks API
+// @version 1.0
+// @description REST API для управления задачами (Task) с асинхронным логированием.
+// @contact.name Your Name
+// @contact.email you@example.com
+// @host localhost:8080
+// @BasePath /
 package main
 
 import (
@@ -17,7 +24,7 @@ import (
 )
 
 const (
-	httpHost = "localhost"
+	httpHost = "0.0.0.0"
 	httpPort = 8080
 
 	logChBuf = 100

@@ -10,6 +10,17 @@ import (
 	"lo/internal/logger"
 )
 
+// CreateTask godoc
+// @Summary Create a new task
+// @Description Создать задачу. ID генерируется сервером.
+// @Tags tasks
+// @Accept application/json
+// @Produce application/json
+// @Param task body task.RequestTask true "Task to create"      // model package path: domain/task
+// @Success 201 {object} map[string]int "created id"     // можно описать структуру ответа
+// @Failure 400 {object} api.ErrorResponse
+// @Failure 500 {object} api.ErrorResponse
+// @Router /tasks [post]
 func CreateTask(st *task.StorageTask, as *logger.AsyncLogger) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var t task.Task

@@ -10,6 +10,15 @@ import (
 	"lo/internal/logger"
 )
 
+// ListTasks godoc
+// @Summary List tasks
+// @Description Получить список задач. Можно фильтровать по статусу через query param ?status=<status>.
+// @Tags tasks
+// @Produce application/json
+// @Param status query string false "Filter tasks by status (optional)"
+// @Success 200 {array} task.Task
+// @Failure 500 {object} api.ErrorResponse
+// @Router /tasks [get]
 func ListTasks(st *task.StorageTask, as *logger.AsyncLogger) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var tasks []*task.Task

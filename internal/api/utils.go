@@ -8,7 +8,7 @@ import (
 	"lo/internal/logger"
 )
 
-type errorResponse struct {
+type ErrorResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
@@ -17,7 +17,7 @@ func WriteError(w http.ResponseWriter, as *logger.AsyncLogger, code int, message
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 
-	resp := errorResponse{
+	resp := ErrorResponse{
 		Code:    code,
 		Message: message,
 	}

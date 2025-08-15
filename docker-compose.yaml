@@ -1,0 +1,9 @@
+services:
+  lo-service:
+    container_name: lo-service
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: lo-service
+    ports:
+      - "8080:8080"
