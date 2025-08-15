@@ -47,27 +47,27 @@ func main() {
 	}
 
 	go func() {
-		asyncLogger.Info(ctx, "starting http server", slog.String("addr", server.Addr))
+		asyncLogger.Info("starting http server", slog.String("addr", server.Addr))
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			asyncLogger.Error(ctx, "failed to start server", slog.String("err", err.Error()))
+			asyncLogger.Error("failed to start server", slog.String("err", err.Error()))
 		}
 	}()
 
 	<-ctx.Done()
 
+	asyncLogger.Info("received shutdown signal")
+
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), shutdownTime)
 	defer shutdownCancel()
 
-	asyncLogger.Info(shutdownCtx, "received shutdown signal")
-
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		asyncLogger.Error(shutdownCtx, "cannot shutdown http server", slog.String("err", err.Error()))
+		asyncLogger.Error("cannot shutdown http server", slog.String("err", err.Error()))
 		return
 	}
 
-	asyncLogger.Info(shutdownCtx, "stopping http server", slog.String("addr", server.Addr))
+	asyncLogger.Info("stopping http server", slog.String("addr", server.Addr))
 
-	asyncLogger.Info(shutdownCtx, "application shutdown completed successfully")
+	asyncLogger.Info("application shutdown completed successfully")
 
 	asyncLogger.Close(shutdownCtx)
 }
@@ -81,7 +81,7 @@ func initRouter(storageTask *task.StorageTask, loggingWorker *llogger.AsyncLogge
 			handler.CreateTask(storageTask, loggingWorker)(w, r)
 
 		case http.MethodGet:
-			handler.GetTask()(w, r)
+			handler.ListTasks()(w, r)
 
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -92,7 +92,7 @@ func initRouter(storageTask *task.StorageTask, loggingWorker *llogger.AsyncLogge
 	mux.HandleFunc("/tasks/", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			handler.ListTasks()(w, r)
+			handler.GetTask(storageTask, loggingWorker)(w, r)
 
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)

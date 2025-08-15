@@ -54,24 +54,22 @@ func (al *AsyncLogger) Run(ctx context.Context) {
 	}
 }
 
-func (al *AsyncLogger) Info(ctx context.Context, message string, attrs ...slog.Attr) {
+func (al *AsyncLogger) Info(message string, attrs ...slog.Attr) {
 	select {
-	case <-ctx.Done():
-		return
-
 	case al.logCh <- logEntry{
 		level:   slog.LevelInfo,
 		message: message,
 		attrs:   attrs,
 	}:
 		al.wg.Add(wgDefaultDelta)
+
+	default:
+
 	}
 }
 
-func (al *AsyncLogger) Error(ctx context.Context, message string, attrs ...slog.Attr) {
+func (al *AsyncLogger) Error(message string, attrs ...slog.Attr) {
 	select {
-	case <-ctx.Done():
-		return
 
 	case al.logCh <- logEntry{
 		level:   slog.LevelError,
@@ -79,6 +77,8 @@ func (al *AsyncLogger) Error(ctx context.Context, message string, attrs ...slog.
 		attrs:   attrs,
 	}:
 		al.wg.Add(wgDefaultDelta)
+
+	default:
 
 	}
 }
