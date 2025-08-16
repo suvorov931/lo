@@ -19,15 +19,15 @@ import (
 // @Success 200 {array} task.Task
 // @Failure 500 {object} api.ErrorResponse
 // @Router /tasks [get]
-func ListTasks(st *task.StorageTask, as *logger.AsyncLogger) func(w http.ResponseWriter, r *http.Request) {
+func ListTasks(sc task.StorageClient, as *logger.AsyncLogger) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var tasks []*task.Task
 
 		status := r.URL.Query().Get("status")
 		if status == "" {
-			tasks = st.GetAll()
+			tasks = sc.GetAll()
 		} else {
-			tasks = st.GetByStatus(status)
+			tasks = sc.GetByStatus(status)
 		}
 
 		if tasks == nil {

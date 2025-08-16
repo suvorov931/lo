@@ -21,7 +21,7 @@ import (
 // @Failure 400 {object} api.ErrorResponse
 // @Failure 500 {object} api.ErrorResponse
 // @Router /tasks [post]
-func CreateTask(st *task.StorageTask, as *logger.AsyncLogger) func(w http.ResponseWriter, r *http.Request) {
+func CreateTask(sc task.StorageClient, as *logger.AsyncLogger) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var t task.Task
 
@@ -32,7 +32,7 @@ func CreateTask(st *task.StorageTask, as *logger.AsyncLogger) func(w http.Respon
 			return
 		}
 
-		st.Save(&t)
+		sc.Save(&t)
 
 		writeResponse(w, t.Id, as)
 

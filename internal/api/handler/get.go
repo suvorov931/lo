@@ -22,7 +22,7 @@ import (
 // @Failure 400 {object} api.ErrorResponse
 // @Failure 404 {object} api.ErrorResponse
 // @Router /tasks/{id} [get]
-func GetTask(st *task.StorageTask, as *logger.AsyncLogger) func(w http.ResponseWriter, r *http.Request) {
+func GetTask(sc task.StorageClient, as *logger.AsyncLogger) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, idStr := path.Split(r.URL.Path)
 
@@ -33,7 +33,7 @@ func GetTask(st *task.StorageTask, as *logger.AsyncLogger) func(w http.ResponseW
 			return
 		}
 
-		t := st.Get(id)
+		t := sc.Get(id)
 		if t == nil {
 			api.WriteError(w, as, http.StatusNotFound, "task not found")
 			as.Error("GetTask: task not found", slog.Int("id", id))
