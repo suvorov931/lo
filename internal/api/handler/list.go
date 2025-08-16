@@ -19,7 +19,7 @@ import (
 // @Success 200 {array} task.Task
 // @Failure 500 {object} api.ErrorResponse
 // @Router /tasks [get]
-func ListTasks(sc task.StorageClient, as *logger.AsyncLogger) func(w http.ResponseWriter, r *http.Request) {
+func ListTasks(sc task.StorageClient, logger logger.Logger) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var tasks []*task.Task
 
@@ -31,21 +31,21 @@ func ListTasks(sc task.StorageClient, as *logger.AsyncLogger) func(w http.Respon
 		}
 
 		if tasks == nil {
-			api.WriteError(w, as, http.StatusNotFound, "tasks not found")
-			as.Warn("ListTasks: tasks not found")
+			api.WriteError(w, logger, http.StatusNotFound, "tasks not found")
+			logger.Warn("ListTasks: tasks not found")
 			return
 		}
 
-		writeResponseWithTasks(w, tasks, as)
-		as.Info("ListTasks: successfully list tasks", slog.Int("count", len(tasks)))
+		writeResponseWithTasks(w, tasks, logger)
+		logger.Info("ListTasks: successfully list tasks", slog.Int("count", len(tasks)))
 	}
 }
 
-func writeResponseWithTasks(w http.ResponseWriter, t []*task.Task, as *logger.AsyncLogger) {
+func writeResponseWithTasks(w http.ResponseWriter, t []*task.Task, logger logger.Logger) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(t); err != nil {
-		as.Error("writeResponseWithTask: cannot encode request body", slog.String("error", err.Error()))
+		logger.Error("writeResponseWithTask: cannot encode request body", slog.String("error", err.Error()))
 	}
 }

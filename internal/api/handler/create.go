@@ -21,26 +21,26 @@ import (
 // @Failure 400 {object} api.ErrorResponse
 // @Failure 500 {object} api.ErrorResponse
 // @Router /tasks [post]
-func CreateTask(sc task.StorageClient, as *logger.AsyncLogger) func(w http.ResponseWriter, r *http.Request) {
+func CreateTask(sc task.StorageClient, logger logger.Logger) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var t task.Task
 
 		err := json.NewDecoder(r.Body).Decode(&t)
 		if err != nil {
-			api.WriteError(w, as, http.StatusBadRequest, "invalid body")
-			as.Error("CreateTask: cannot decode request body", slog.String("error", err.Error()))
+			api.WriteError(w, logger, http.StatusBadRequest, "invalid body")
+			logger.Error("CreateTask: cannot decode request body", slog.String("error", err.Error()))
 			return
 		}
 
 		sc.Save(&t)
 
-		writeResponse(w, t.Id, as)
+		writeResponse(w, t.Id, logger)
 
-		as.Info("CreateTask: successfully created task", slog.Int("id", t.Id))
+		logger.Info("CreateTask: successfully created task", slog.Int("id", t.Id))
 	}
 }
 
-func writeResponse(w http.ResponseWriter, id int, as *logger.AsyncLogger) {
+func writeResponse(w http.ResponseWriter, id int, logger logger.Logger) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
@@ -51,6 +51,6 @@ func writeResponse(w http.ResponseWriter, id int, as *logger.AsyncLogger) {
 	}
 
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		as.Error("CreateTask: cannot decode request body", slog.String("error", err.Error()))
+		logger.Error("CreateTask: cannot decode request body", slog.String("error", err.Error()))
 	}
 }

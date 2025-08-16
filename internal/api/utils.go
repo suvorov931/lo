@@ -13,7 +13,7 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
-func WriteError(w http.ResponseWriter, as *logger.AsyncLogger, code int, message string) {
+func WriteError(w http.ResponseWriter, logger logger.Logger, code int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 
@@ -24,6 +24,6 @@ func WriteError(w http.ResponseWriter, as *logger.AsyncLogger, code int, message
 
 	err := json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		as.Error("WriteError: failed to encode response", slog.String("error", err.Error()))
+		logger.Error("WriteError: failed to encode response", slog.String("error", err.Error()))
 	}
 }
